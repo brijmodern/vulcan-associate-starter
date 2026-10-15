@@ -13,6 +13,9 @@
 name: northwind-gear
 display_name: Northwind Gear Analytics
 description: Vulcan Associate lab -- daily revenue and customer order marts for Northwind Gear.
+domain: finance
+users:
+  - username: finance_analytics
 
 gateways:
   default:

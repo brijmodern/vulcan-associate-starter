@@ -2,7 +2,7 @@
 # (Vulcan book: guides/get-started/docker/).
 #
 # The book defines a shell alias:
-#   alias vulcan="docker run -it --network=vulcan --rm -v .:/workspace tmdcio/vulcan-postgres:0.228.1.19 vulcan"
+#   alias vulcan="docker run -it --network=vulcan --rm -v .:/workspace tmdcio/vulcan-postgres:0.228.1.30 vulcan"
 # This Makefile does the same, and also passes your .env file into the
 # container so the env_var(...) lookups in config.yaml resolve.
 #
@@ -12,7 +12,7 @@
 #   make plan-dev run-dev
 #   make grade
 
-VULCAN_IMAGE ?= tmdcio/vulcan-postgres:0.228.1.19
+VULCAN_IMAGE ?= tmdcio/vulcan-postgres:0.228.1.30
 ENV_FILE := $(if $(wildcard .env),--env-file .env,)
 DOCKER_RUN = docker run --rm --network=vulcan $(ENV_FILE) -e PYTHONDONTWRITEBYTECODE=1 -v "$(CURDIR)":/workspace -w /workspace
 VULCAN ?= $(DOCKER_RUN) -it $(VULCAN_IMAGE) vulcan

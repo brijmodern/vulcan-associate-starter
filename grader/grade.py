@@ -9,7 +9,7 @@ grading-report/report.md (human-readable).
 Usage
 -----
   python3 grader/grade.py --submission . --out grading-report
-                          [--dry-run] [--assigned-seed N] [--env grading]
+                          [--dry-run] [--assigned-seed N] [--env prod]
                           [--stages builds,lint,...] [--skip-injection] [--no-render]
                           [--keep-workdir] [--workdir DIR]
   python3 grader/grade.py --print-checksum
@@ -63,6 +63,7 @@ Environment variables
 from __future__ import annotations
 
 import argparse
+import copy
 import csv
 import datetime as dt
 import hashlib
@@ -127,7 +128,7 @@ FAILURE_MARKERS = {
 #         (environment_suffix_target = schema): model `marts.daily_revenue` in env
 #         `grading` is exposed as view "marts__grading"."daily_revenue". If the view is
 #         not found, the grader falls back to `vulcan table_name --env <env> <model>`.
-ENV_SCHEMA_TEMPLATE = "{schema}__{env}"
+ENV_SCHEMA_TEMPLATE = "{schema}__{env}"  # non-prod environments; prod uses the plain schema
 
 # VERIFY: Vulcan accepts a Postgres state_connection that points at the same database as
 #         the warehouse connection (the docker guide documents a Postgres state backend
@@ -338,7 +339,7 @@ def cmd_ok(res, kind=None):
 # Postgres access (psycopg2 -> psycopg 3 -> psql CLI)
 # =============================================================================
 class PgClient:
-    # VERIFY: psycopg2 is importable in tmdcio/vulcan-postgres:0.228.1.19 (Vulcan's Postgres
+    # VERIFY: psycopg2 is importable in tmdcio/vulcan-postgres:0.228.1.30 (Vulcan's Postgres
     #         engine adapter needs it); psql is a fallback and is probably NOT in the image.
     def __init__(self, cfg):
         self.cfg = cfg
@@ -1030,7 +1031,8 @@ class Grader:
 
     def table_for(self, model):
         schema, table = model.split(".", 1)
-        rel = f"{qident(ENV_SCHEMA_TEMPLATE.format(schema=schema, env=self.env))}.{qident(table)}"
+        env_schema = schema if self.env == "prod" else ENV_SCHEMA_TEMPLATE.format(schema=schema, env=self.env)
+        rel = f"{qident(env_schema)}.{qident(table)}"
         try:
             if self.db.relation_exists(rel):
                 return rel
@@ -1073,12 +1075,31 @@ class Grader:
     def injection(self):
         if self.args.skip_injection:
             return hidden_checks.injection_result(None, "", None, skipped_reason="--skip-injection")
+        # Build the injected copy from scratch in its own fresh database. In an existing
+        # environment Vulcan only refreshes the changed seed and doesn't re-audit the
+        # downstream VIEW, so the custom audit would never run against the bad row.
+        inj_settings = copy.deepcopy(self.settings)
+        inj_db = self.settings.pg["database"] + "_inject"
+        if inj_settings.query["database"] == inj_settings.pg["database"]:
+            inj_settings.query["database"] = inj_db
+        inj_settings.pg["database"] = inj_db
+        ok, msg = prepare_grading_database(inj_settings)
+        if not ok:
+            self.flags.append(f"bad-data injection could not run: {msg}")
+            return hidden_checks.injection_result(None, "", None, skipped_reason=msg)
         inj = os.path.join(self.work_base, "inject")
         if os.path.exists(inj):
             shutil.rmtree(inj)
         shutil.copytree(self.work, inj)
+        prepare_config(inj, inj_settings)
         row = hidden_expected.inject_negative_order(os.path.join(inj, "seeds", "orders.csv"))
-        res = self.vulcan("hidden", PLAN_ARGS, "plan_injected_negative_amount", cwd=inj, env=f"{self.env}_inject")
+        runner = VulcanRunner(inj_settings, self.log_dir)
+        runner.counter = self.runner.counter
+        res = runner.run(PLAN_ARGS, inj, "plan_injected_negative_amount", env=self.env)
+        self.runner.counter = runner.counter
+        entry = {k: res[k] for k in ("cmd", "rc", "seconds", "log")}
+        entry["output_tail"] = tail(res["output"], 2500)
+        self.stages["hidden"]["commands"].append(entry)
         return hidden_checks.injection_result(res["rc"], res["output"], row)
 
     # -- report ----------------------------------------------------------------
@@ -1215,7 +1236,7 @@ def main(argv=None):
     p = argparse.ArgumentParser(description="Vulcan Associate (Beginner) lab grader")
     p.add_argument("--submission", default=".", help="path to the lab repo (never modified; default .)")
     p.add_argument("--out", default="grading-report", help="output dir (default grading-report)")
-    p.add_argument("--env", default="grading", help="Vulcan environment to plan into (default: grading)")
+    p.add_argument("--env", default="prod", help="Vulcan environment to plan into, inside the isolated grading database (default: prod)")
     p.add_argument("--assigned-seed", type=int, default=None, help="reviewers: also check seeds/SEED equals this seed")
     p.add_argument("--dry-run", action="store_true", help="no Vulcan/DB calls: structure + static stages + expected results")
     p.add_argument("--stages", default=None, help=f"comma-separated subset of: {','.join(STAGE_IDS)} (debugging only)")

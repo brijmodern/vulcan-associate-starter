@@ -35,7 +35,7 @@ Then follow *Get started → Docker* in the Vulcan book. This repo already conta
 |---|---|
 | `docker-compose.infra.yml` | `warehouse` (Postgres 15, host port 5434) and `statestore` (Postgres 15, host port 5433) on the `vulcan` network |
 | `.env.example` | connection settings read by `config.yaml` through `env_var(...)`. Copy it to `.env` |
-| `Makefile` | wraps the Vulcan CLI image (`tmdcio/vulcan-postgres:0.228.1.19`) and passes `.env` into the container |
+| `Makefile` | wraps the Vulcan CLI image (`tmdcio/vulcan-postgres:0.228.1.30`) and passes `.env` into the container |
 | `config.yaml` | skeleton project config: Postgres gateway, `model_defaults`, linter enabled |
 | `seeds/` | the three CSVs you must load (`customers.csv`, `products.csv`, `orders.csv`), plus `SEED`, the seed they were generated from |
 | `tools/generate_data.py` | regenerates the CSVs and `seeds/SEED` for your assigned dataset seed (`make data SEED=n`) |
@@ -159,7 +159,7 @@ You grade your own work on your machine with `make grade`, then upload the repor
 You need only Docker: the grader runs inside the Vulcan image, against your local `warehouse` server.
 
 The grader copies your repository to a temporary folder. It deploys to a separate, freshly re-created
-database called `vulcan_grading` on the same Postgres server, in an environment called `grading`. Your
+database called `vulcan_grading` on the same Postgres server, with its own Vulcan state, and plans into that database's `prod` environment. Your
 repository, your `dev` environment and your Vulcan state are left alone. It replaces the `gateways`
 section of the copied `config.yaml`, so your `.env` connection values don't affect the score.
 
@@ -195,7 +195,7 @@ their result doesn't match your report, or your seed or commit doesn't match, yo
 | 1 | Builds **(critical)** | 10 | `vulcan info` succeeds: the project loads and the connection works |
 | 2 | Lint | 10 | `vulcan lint` reports no errors with the rule set above |
 | 3 | Format | 5 | `vulcan format --check` reports no changes needed |
-| 4 | Plan + run **(critical)** | 15 | `vulcan plan grading` applies non-interactively (10), then `vulcan run grading` succeeds (5) |
+| 4 | Plan + run **(critical)** | 15 | `vulcan plan prod` applies non-interactively in the isolated grading database (10), then `vulcan run prod` succeeds (5) |
 | 5 | Your tests pass | 10 | `vulcan test` succeeds |
 | 6 | Test exists | 5 | at least 1 unit test for `marts.daily_revenue` |
 | 7 | Your audits pass | 5 | `vulcan audit` succeeds |
