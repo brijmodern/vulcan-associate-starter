@@ -37,21 +37,23 @@ Then follow *Get started → Docker* in the Vulcan book. This repo already conta
 | `.env.example` | connection settings read by `config.yaml` through `env_var(...)`. Copy it to `.env` |
 | `Makefile` | wraps the Vulcan CLI image (`tmdcio/vulcan-postgres:0.228.1.19`) and passes `.env` into the container |
 | `config.yaml` | skeleton project config: Postgres gateway, `model_defaults`, linter enabled |
-| `seeds/` | the three CSVs you must load (`customers.csv`, `products.csv`, `orders.csv`) |
-| `tools/generate_data.py` | regenerates the CSVs for your assigned dataset seed |
+| `seeds/` | the three CSVs you must load (`customers.csv`, `products.csv`, `orders.csv`), plus `SEED`, the seed they were generated from |
+| `tools/generate_data.py` | regenerates the CSVs and `seeds/SEED` for your assigned dataset seed (`make data SEED=n`) |
+| `grader/` | the automated grader (`make grade`). Don't modify it: the course page rejects reports from a modified grader |
 
 ```bash
 cp .env.example .env
 make network up          # docker network + warehouse + statestore
-make data SEED=<your assigned seed>   # IMPORTANT: use the seed in your invitation email
+make data SEED=<your assigned seed>   # IMPORTANT: use the seed assigned to you on the course page
 make info                # must show a successful connection
 ```
 
 > If you prefer the book's `vulcan` shell alias, add `--env-file .env` to it so the `env_var(...)`
 > values in `config.yaml` reach the container. You can also use the global `--dotenv .env` option.
 
-**Your dataset is personal.** The grader checks that `seeds/*.csv` match the seed you were assigned.
-Do not edit the CSVs by hand.
+**Your dataset is personal.** The committed data uses seed 42; replace it with your own seed before you
+start. The grader regenerates the data from `seeds/SEED` and checks that your CSVs match. The course page
+checks that `seeds/SEED` is the seed assigned to you. Don't edit the CSVs or `seeds/SEED` by hand.
 
 ---
 
@@ -151,29 +153,43 @@ Then spot-check your output, for example:
 
 ---
 
-## 2. Submission
+## 2. Grading and submission
 
-1. Make sure `.env`, `.state/` and `.cache/` are **not** committed (see `.gitignore`).
-2. Commit everything, including your `seeds/` exactly as generated with your seed.
-3. Push to your lab repository and tag the commit:
+You grade your own work on your machine with `make grade`, then upload the report to the course page.
+You need only Docker: the grader runs inside the Vulcan image, against your local `warehouse` server.
+
+The grader copies your repository to a temporary folder. It deploys to a separate, freshly re-created
+database called `vulcan_grading` on the same Postgres server, in an environment called `grading`. Your
+repository, your `dev` environment and your Vulcan state are left alone. It replaces the `gateways`
+section of the copied `config.yaml`, so your `.env` connection values don't affect the score.
+
+1. Make sure `.env`, `.state/`, `.cache/` and `grading-report/` are **not** committed (see `.gitignore`).
+2. Commit everything, including `seeds/` exactly as `make data SEED=<your seed>` generated it.
+   `git status` must show **no uncommitted changes**. A report made from a dirty working tree is rejected.
+3. Tag the commit, then grade it:
 
 ```bash
-git tag submission-v1
-git push origin main --tags
+git tag submission-v1            # resubmitting? use submission-v2, submission-v3, ...
+make grade                       # takes a few minutes
 ```
 
-Pushing the tag triggers the grading workflow. The report appears in the Actions run, both as the job
-summary and as the `grading-report` artifact. If you need to resubmit, use `submission-v2` and so on.
-**The highest-numbered tag pushed before the deadline is graded.**
+4. Read `grading-report/report.md`. It lists every check, what failed and why. To improve your score,
+   fix the issue, commit, tag the new commit `submission-v2`, and run `make grade` again.
+5. Push your commits and the tag: `git push origin main --tags`. Reviewers must be able to check out
+   the graded commit.
+6. Upload `grading-report/report.json` on the course's **Hands-on lab** page. Don't edit it: the page
+   checks the grader version and checksum, that the stage scores add up, the graded commit and tag,
+   that the working tree was clean, and that your dataset seed is the one assigned to you.
+
+**Spot-checks.** Reviewers re-run the grader on a random sample of submissions and on **every score
+from 70 to 75**. They clone your repository at the commit in your report and run `make grade`. If
+their result doesn't match your report, or your seed or commit doesn't match, you fail the lab.
 
 ---
 
 ## 3. How you are scored (100 points, pass mark 70)
 
-The grader copies your repo and deploys it to a fresh environment called `grading`. It uses its own
-database connection; it replaces the `gateways` section of your `config.yaml`, so your `.env` values
-don't matter.
-
+`make grade` runs these stages against the isolated grading copy:
 | # | Stage | Points | What is checked |
 |---|---|---:|---|
 | 1 | Builds **(critical)** | 10 | `vulcan info` succeeds: the project loads and the connection works |
@@ -198,3 +214,5 @@ Tips:
 * The grader adds `--skip-tests` to `plan`, so tests are scored only in stage 5. Your plan still has
   to pass your own audits.
 * Before you tag, run the whole sequence locally: `make info lint format-check test plan-dev run-dev audit`.
+* `make grade-dry-run` checks structure, models, audits and tests in seconds, without Vulcan or a
+  database. Its report can't be uploaded.
