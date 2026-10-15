@@ -1,0 +1,46 @@
+# Northwind Gear -- Vulcan project configuration.
+#
+# Format follows the Vulcan book: configurations/overview/ and
+# guides/get-started/docker/ (Postgres engine, Step 5).
+#
+# Connection values are read from environment variables so that no secret is
+# committed. Copy .env.example to .env; the Makefile passes it to the Vulcan
+# container with `docker run --env-file .env`.
+#
+# NOTE: the grader replaces the `gateways` / `default_gateway` section with its
+# own grading database. Keep everything else (model_defaults, linter) here.
+
+name: northwind-gear
+display_name: Northwind Gear Analytics
+description: Vulcan Associate lab -- daily revenue and customer order marts for Northwind Gear.
+
+gateways:
+  default:
+    connection:
+      type: postgres
+      host: "{{ env_var('WAREHOUSE_HOST') }}"
+      port: "{{ env_var('WAREHOUSE_PORT') }}"
+      database: "{{ env_var('WAREHOUSE_DB') }}"
+      user: "{{ env_var('WAREHOUSE_USER') }}"
+      password: "{{ env_var('WAREHOUSE_PASSWORD') }}"
+    state_connection:
+      type: postgres
+      host: "{{ env_var('STATE_HOST') }}"
+      port: "{{ env_var('STATE_PORT') }}"
+      database: "{{ env_var('STATE_DB') }}"
+      user: "{{ env_var('STATE_USER') }}"
+      password: "{{ env_var('STATE_PASSWORD') }}"
+
+default_gateway: default
+
+model_defaults:
+  dialect: postgres
+  start: 2026-09-01
+  cron: '@daily'
+
+linter:
+  enabled: true
+  rules:
+    - ambiguousorinvalidcolumn
+    - invalidselectstarexpansion
+    - noselectstar

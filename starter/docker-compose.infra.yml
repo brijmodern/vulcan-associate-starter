@@ -1,0 +1,35 @@
+# Local infrastructure for the lab, as described in the Vulcan book
+# (guides/get-started/docker/, Step 5 "Postgres state backend").
+#   warehouse  -> where your models are materialised (host port 5434)
+#   statestore -> Vulcan state (host port 5433)
+# Both join the external `vulcan` network so the Vulcan CLI container can
+# reach them as `warehouse:5432` and `statestore:5432`.
+# From your own machine (psql / IDE) use localhost:5434 and localhost:5433.
+services:
+  warehouse:
+    image: postgres:15
+    container_name: warehouse
+    environment:
+      POSTGRES_USER: vulcan
+      POSTGRES_PASSWORD: vulcan
+      POSTGRES_DB: warehouse
+    ports:
+      - "5434:5432"
+    networks:
+      - vulcan
+
+  statestore:
+    image: postgres:15
+    container_name: statestore
+    environment:
+      POSTGRES_USER: vulcan
+      POSTGRES_PASSWORD: vulcan
+      POSTGRES_DB: statestore
+    ports:
+      - "5433:5432"
+    networks:
+      - vulcan
+
+networks:
+  vulcan:
+    external: true

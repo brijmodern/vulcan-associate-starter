@@ -1,0 +1,21 @@
+customer_id,full_name,email,country,signup_date
+1,Freya Muller ,freya.muller@example.com,us,2025-09-15
+2,Kai Reyes,KAI.REYES@EXAMPLE.COM ,US,2025-12-12
+3,Ravi Patel,ravi.patel@example.com, ca,2026-05-07
+4,Zara Singh, zara.singh@example.com,DE,2026-03-06
+5,Sofia Kim,sofia.kim@example.com,gb,2026-02-25
+6,Tariq Larsen, TARIQ.LARSEN@EXAMPLE.COM,CA,2026-02-15
+7,Noah Reyes,noah.reyes@example.com,DE,2025-11-05
+8,Priya Garcia,priya.garcia@example.com,US,2026-04-30
+9,Tariq Muller,tariq.muller@example.com,IN,2026-02-19
+10,Yuki Rossi,yuki.rossi@example.com,FR,2025-10-20
+11,Freya Okafor, FREYA.OKAFOR@EXAMPLE.COM,CA,2025-10-04
+12,Amara Reyes,amara.reyes@example.com,GB,2026-05-02
+13,Ines Smith,ines.smith@example.com ,DE,2025-12-15
+14,Chloe Tanaka,chloe.tanaka@example.com,GB,2026-04-15
+15,Kai Singh,kai.singh@example.com,IN,2026-06-18
+16,Isla Dubois,isla.dubois@example.com,US,2026-06-07
+17,Felix Brown  ,felix.brown@example.com,CA,2026-04-21
+18,Leo Patel,leo.patel@example.com,FR,2026-04-13
+19,Nora Haddad,NORA.HADDAD@EXAMPLE.COM,US,2025-08-24
+20,Sofia Fischer,sofia.fischer@example.com ,GB,2025-12-11
