@@ -25,7 +25,11 @@ grain with `grains (...)`). Trust the Vulcan book over SQLMesh docs.
 
 ## 0. Setup (about 15 minutes)
 
-Follow *Get started → Docker* in the Vulcan book. This repo already contains the pieces:
+First, make your own copy of this repository. On GitHub, select **Use this template → Create a new
+repository**, set the visibility to **Private**, then clone your new repository. Don't fork it: a fork
+of a public repository is public, so others could see your work.
+
+Then follow *Get started → Docker* in the Vulcan book. This repo already contains the pieces:
 
 | File | Purpose |
 |---|---|
